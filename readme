@@ -1,0 +1,31 @@
+
+	* idea:
+		This project reimplements a small set of early UNIX-style
+		userland programs in x86_64 assembly, under explicit
+		historical and resource constraints, to study streaming program
+		design, memory discipline, and compositional tooling
+
+		The behavior and usage patterns are based on the series of commands
+		demonstrated by Brian Kernighan in the AT&T Bell Laboratories film:
+
+		“UNIX: Making Computers Easier To Use” (1982 archive film),
+
+	* program constraints:
+		1. Each program must fall within an approximate 16–32 KB conceptual process budget, divided as follows:
+			1.a. Text segment:   6 KB
+			1.b. Data segment:   4 KB
+			1.c. Stack usage:    1 KB (by design; no recursion)
+			1.d. Static buffers: 2 KB total
+		2. Memory model
+			2.a. No heap usage
+			2.b. No dynamic memory allocation
+			2.c. No recursion
+			2.d. All memory is static or stack-based
+			2.e. All buffers are fixed-size and statically allocated
+
+	* how to run:
+		$ make
+		$ # follow the order in which Brian runs the programs
+
+	05naif
+
