@@ -1,12 +1,14 @@
-srcs = p.s
-objs = ../objs/p.o
-exec = ../bin/p
+SRCS = p.s makewords.s
+OBJS = $(SRCS:.s=.o)
+OBJS := $(addprefix ../objs/, $(OBJS))
+BINS = p makewords
+BINS := $(addprefix ../bin/, $(BINS))
 
-$(exec): $(objs)
+all: $(BINS)
+
+../bin/%: ../objs/%.o
 	ld $< -o $@
-
-$(objs): $(srcs)
+../objs/%.o: %.s
 	as $< -o $@
-
 clean:
-	rm -rf $(objs) $(exec)
+	rm -rf $(OBJS) $(BINS)

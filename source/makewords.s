@@ -1,22 +1,17 @@
 #            ,--,
 #      _ ___/ /\|    05naif
-#  ,;'( )__, )  ~    Sat 27 Dec, 2025: 16:43:35
+#  ,;'( )__, )  ~    Mon 29 Dec, 2026: 18:32:54
 # //  //   '--; 
 # '   \     | ^
 #      ^    ^
 # 
-# p-command stands for 'print' and it acts like a cat
-# command but w/o all of its capabilities
-#
-# usage:
-# $ p
-#   or
-# $ p [filename]
+# makewords prints all the words in the given input
+# in a newline
 # 
 
 .section .rodata
-	.UsageMessage: .string "usage: p [filename | ]\n"
-	.UsageLength:  .quad 23
+	.UsageMessage: .string "usage: makewords [filename | ]\n"
+	.UsageLength:  .quad 31
 
 	.UnexistentFileMessage: .string "error: cannot open file\n"
 	.UnexistentFileLength:  .quad 25
@@ -24,9 +19,11 @@
 .section .bss
 	.ReadingBuffer: .zero 512
 	.WritenBytes: .zero 2
+	.Word: .zero 64
 
 .section .text
 	.equ ReadingBufferLength, 512
+	.equ WordLength, 64
 
 .globl _start
 
@@ -58,12 +55,50 @@ _start:
 	syscall
 	cmpw	$0, %ax
 	jz		.stop_reading
-	movw	%ax, %dx
+	xorq	%rcx, %rcx
+	movq	%rax, %rbx
+	leaq	.Word(%rip), %r14
+	xorq	%r13, %r13
+.split_loop:
+	cmpq	%rbx, %rcx
+	jz		.reading_loop
+	cmpq	$WordLength, %r13
+	jz		.print_word
+	leaq	.ReadingBuffer(%rip), %rax
+	addq	%rcx, %rax
+	movzbl	(%rax), %edi
+	cmpb	$10, %dil
+	jz		.check_word
+	cmpb	$32, %dil
+	jz		.check_word
+	movb	%dil, (%r14)
+	incq	%r13
+	incq	%r14
+	incq	%rcx
+	jmp		.split_loop
+.check_word:
+	movzbl	-1(%rax), %edi
+	cmpb	$10, %dil
+	jnz		.word_found
+	incq	%rcx
+	jmp		.split_loop
+.word_found:	
+	movb	$10, (%r14)
+	incq	%r13
+	incq	%rcx
+.print_word:
+	pushq	%rbx
+	pushq	%rcx
 	movq	$1, %rax
 	movq	$1, %rdi
-	leaq	.ReadingBuffer(%rip), %rsi
+	leaq	.Word(%rip), %rsi
+	movq	%r13, %rdx
 	syscall
-	jmp		.reading_loop
+	popq	%rcx
+	popq	%rbx
+	xorq	%r13, %r13
+	leaq	.Word(%rip), %r14
+	jmp		.split_loop
 .stop_reading:
 	movq	%r15, %rdi
 	movq	$3, %rax
