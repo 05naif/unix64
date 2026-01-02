@@ -1,93 +1,75 @@
 #            ,--,
 #      _ ___/ /\|    05naif
-#  ,;'( )__, )  ~    Sat 27 Dec, 2025: 16:43:35
+#  ,;'( )__, )  ~    Fri  2 Jan, 2026: 17:50:38
 # //  //   '--; 
 # '   \     | ^
 #      ^    ^
-# 
-# p-command stands for 'print' and it acts like a cat
-# command but w/o all of its capabilities
 #
-# usage:
-# $ p
-#   or
-# $ p [filename]
-# 
+# 'p' program works as a printer for any file given as argument,
+# it will display all the content of the file provided, if no file
+# is given, it will run as well but will take input as stdin.
+#
 
 .section .rodata
-	.UsageMessage: .string "usage: p [filename | ]\n"
-	.UsageLength:  .quad 23
+	.UsageMessage: .string "p: usage: p filename <or> p\n"
+	.UsageLength:  .quad 28
 
-	.UnexistentFileMessage: .string "error: cannot open file\n"
-	.UnexistentFileLength:  .quad 25
+	.ReadingBufferLength: .quad 2048
 
 .section .bss
-	.ReadingBuffer: .zero 512
-	.WritenBytes: .zero 2
+	.ReadingBuffer: .zero 2048
 
 .section .text
-	.equ ReadingBufferLength, 512
 
 .globl _start
 
 _start:
 	movq	(%rsp), %rax
 	cmpq	$2, %rax
-	jz		.file_provided
+	je		.file_given
 	cmpq	$1, %rax
-	jz		.read_from_stdin
-	jmp		.print_usage
-.read_from_stdin:
-	movq	$0, %r15
-	jmp		.reading_loop
-.file_provided:
-	movq	16(%rsp), %rax
-	movq	%rax, %rdi
-	xorq	%rsi, %rsi
+	jne		.usage
+	# since no file was given to read
+	# from, set the fd to 2 (stdin)
+	movq	$2, %r15
+	jmp		.init_stack
+.file_given:
+	movq	16(%rsp), %rdi
 	movq	$2, %rax
+	xorq	%rsi, %rsi
 	syscall
 	cmpq	$0, %rax
-	jl		.unexistent_file
+	jl		.usage
 	movq	%rax, %r15
+.init_stack:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	subq	$8, %rsp
+	movq	%r15, -8(%rbp)
 .reading_loop:
-	xorq	%rax, %rax
-	movq	%r15, %rdi
+	movq	$0, %rax
+	movq	-8(%rbp), %rdi
 	leaq	.ReadingBuffer(%rip), %rsi
-	xorq	%rdx, %rdx
-	movw	$ReadingBufferLength, %dx
+	movq	.ReadingBufferLength(%rip), %rdx
 	syscall
-	cmpw	$0, %ax
-	jz		.stop_reading
-	movw	%ax, %dx
+	cmpq	$0, %rax
+	je		.fini
+.process_input:
+	movq	%rax, %rdx
 	movq	$1, %rax
 	movq	$1, %rdi
 	leaq	.ReadingBuffer(%rip), %rsi
 	syscall
+.reading_keep:
 	jmp		.reading_loop
-.stop_reading:
-	movq	%r15, %rdi
-	movq	$3, %rax
+.fini:
+	movq	$60, %rax
+	movq	$0, %rdi
 	syscall
-	jmp		_fini
-.print_usage:
+.usage:
 	movq	$1, %rax
 	movq	$1, %rdi
 	leaq	.UsageMessage(%rip), %rsi
 	movq	.UsageLength(%rip), %rdx
 	syscall
-	jmp		_killit
-.unexistent_file:
-	movq	$1, %rax
-	movq	$2, %rdi
-	leaq	.UnexistentFileMessage(%rip), %rsi
-	movq	.UnexistentFileLength(%rip), %rdx
-	syscall
-	jmp		_killit
-_fini:
-	movq	$60, %rax
-	movq	$0, %rdi
-	syscall
-_killit:
-	movq	$60, %rax
-	movq	$1, %rdi
-	syscall
+	jmp		.fini

@@ -1,0 +1,42 @@
+
+.section .rodata
+	.UsageMessage: .string "p: usage: p filename <or> p\n"
+	.UsageLength:  .quad 28
+
+.section .text
+
+.globl _start
+
+_start:
+	movq	(%rsp), %rax
+	cmpq	$2, %rax
+	je		.file_given
+	cmpq	$1, %rax
+	jne		.usage
+	# since no file was given to read
+	# from, set the fd to 2 (stdin)
+	movq	$2, %r15
+	jmp		.init_stack
+.file_given:
+	movq	16(%rsp), %rdi
+	movq	$2, %rax
+	xorq	%rsi, %rsi
+	syscall
+	cmpq	$0, %rax
+	jl		.usage
+	movq	%rax, %r15
+.init_stack:
+	pushq	%rbp
+	movq	%rsp, %rbp
+
+.fini:
+	movq	$60, %rax
+	movq	$0, %rdi
+	syscall
+.usage:
+	movq	$1, %rax
+	movq	$1, %rdi
+	leaq	.UsageMessage(%rip), %rsi
+	movq	.UsageLength(%rip), %rdx
+	syscall
+	jmp		.fini
