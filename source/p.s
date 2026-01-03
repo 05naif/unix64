@@ -31,7 +31,7 @@ _start:
 	jne		.usage
 	# since no file was given to read
 	# from, set the fd to 2 (stdin)
-	movq	$2, %r15
+	movq	$0, %r15
 	jmp		.init_stack
 .file_given:
 	movq	16(%rsp), %rdi
@@ -53,7 +53,7 @@ _start:
 	movq	.ReadingBufferLength(%rip), %rdx
 	syscall
 	cmpq	$0, %rax
-	je		.fini
+	je		.close_file
 .process_input:
 	movq	%rax, %rdx
 	movq	$1, %rax
@@ -62,6 +62,10 @@ _start:
 	syscall
 .reading_keep:
 	jmp		.reading_loop
+.close_file:
+	movq	$3, %rax
+	movq	-8(%rbp), %rdi
+	syscall
 .fini:
 	movq	$60, %rax
 	movq	$0, %rdi

@@ -1,7 +1,7 @@
-SRCS = p.s #makewords.s lowercase.o sort.o
+SRCS = p.s makewords.s #lowercase.o sort.o
 OBJS = $(SRCS:.s=.o)
 OBJS := $(addprefix ../objs/, $(OBJS))
-BINS = p #makewords lowercase sort
+BINS = p makewords #lowercase sort
 BINS := $(addprefix ../bin/, $(BINS))
 
 all: $(BINS)
