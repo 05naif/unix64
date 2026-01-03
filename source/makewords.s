@@ -13,6 +13,8 @@
 	.UsageMessage: .string "makewords: usage: makewords filename <or> makewords\n"
 	.UsageLength:  .quad 52
 
+	# note: reading buffer must be greater
+	# or equal than writing one
 	.ReadingBufferLength: .quad 2048
 	.WritingBufferLength: .quad 1024
 
@@ -54,9 +56,9 @@ _start:
 	movq	.ReadingBufferLength(%rip), %rdx
 	syscall
 	cmpq	$0, %rax
-	je		.close_file
-.process_input:
+	jle		.close_file
 	movq	%rax, -16(%rbp)
+.process_input:
 	# r8: know many bytes have been read
 	# r9: writing buffer
 	# r10: how many bytes have been written
@@ -76,8 +78,8 @@ _start:
 	je		.skip_chr
 	cmpb	$'\t', %dil
 	je		.skip_chr
-	cmpq	%r10, .WritingBufferLength(%rip)
-	je		.flush
+	cmpq	.WritingBufferLength(%rip), %r10
+	jge		.flush
 	jmp		.add_chr
 .skip_chr:
 	movb	$10, %dil
@@ -93,13 +95,13 @@ _start:
 	incq	%r10
 	jmp		.makewords_loop
 .flush:
-	movb	%dil, %r11b
+	pushq	%rdi
 	movq	$1, %rax
 	movq	$1, %rdi
 	leaq	.WritingBuffer(%rip), %rsi
 	movq	%r10, %rdx
 	syscall
-	movb	%r11b, %dil
+	popq	%rdi
 	leaq	.WritingBuffer(%rip), %r9
 	xorq	%r10, %r10
 	jmp		.add_chr
@@ -110,14 +112,11 @@ _start:
 	movq	-8(%rbp), %rdi
 	syscall
 .fini:
-
 	movq	$1, %rax
 	movq	$1, %rdi
 	leaq	.WritingBuffer(%rip), %rsi
 	movq	.WritingBufferLength(%rip), %rdx
 	syscall
-
-
 	movq	$60, %rax
 	movq	$0, %rdi
 	syscall

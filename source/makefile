@@ -9,6 +9,6 @@ all: $(BINS)
 ../bin/%: ../objs/%.o
 	ld $< -o $@
 ../objs/%.o: %.s
-	as $< -o $@
+	as $< -o $@ -g
 clean:
 	rm -rf $(OBJS) $(BINS)
